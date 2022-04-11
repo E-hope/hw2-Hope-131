@@ -1,0 +1,132 @@
+---
+title: "hw2-hope-131"
+author: "Evan Hope"
+date: "4/10/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Downloading tidyverse and models.
+
+```{r}
+install.packages("tidyverse")
+install.packages("tidymodels")
+install.packages("ISLR")
+
+library(tidyverse)
+library(tidymodels)
+library(ISLR)
+```
+
+
+I will first read in the data set.
+```{r}
+abalone_data = read.csv("C:/Users/Ordai/OneDrive/Desktop/School/Stats/PSTAT 131/hw2-Hope-131/abalone.csv")
+
+```
+
+Question 1.) Adding the 'age' variable to the data set.
+
+```{r}
+library(dplyr)
+
+abalone_data2 <- mutate(abalone_data, age = rings + 1.5)
+
+abalone_data2 %>% select(age, everything())  
+```
+
+The 'age' variable has a simple linear relationship with one of the other variables. It is approximately +1.5 the number of rings observed on the abalone.
+
+However, we will eventually see which other combination of variables goes into approximating the age of the abaolone.
+
+
+Question 2.) Data splitting.
+
+I will now set a seed and split the data.
+
+```{r}
+set.seed(909)
+
+abalone_split <- initial_split(abalone_data2, prop = 0.80, strata = age)
+abalone_train <- training(abalone_split)
+abalone_test <- testing(abalone_split)
+
+
+```
+
+Question 3.) Creating a recipe for the training data.
+
+The reason why we exclude the rings variable here is because we have already asserted that there is a direct relationship between the rings and age. If we were to resume our analysis with rings included, we would notice that rings would be the clear dominant variable in determining the age.
+
+```{r}
+# First a simple recipe to reference from. 
+
+simple_abalone_recipe <- recipe(age ~ ., data = abalone_train)
+```
+
+Dummy coding the categorical variables along with
+centering and scaling the predictors...
+```{r}
+abalone_recipe <- recipe(age ~ type + longest_shell + diameter + height + whole_weight + shucked_weight + viscera_weight + shell_weight, data = abalone_train) %>% 
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_predictors())
+```
+
+
+Question 4.) & 5.)
+And setting up a workflow....
+```{r}
+lm_model <- linear_reg() %>% 
+  set_engine("lm")
+```
+
+Fitting the linear model to the abalone training data...
+```{r}
+lm_wflow <- workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(abalone_recipe)
+```
+
+
+```{r}
+lm_fit <- fit(lm_wflow, abalone_train)
+```
+
+
+And here are our results...
+```{r}
+lm_fit %>% 
+  # This returns the parsnip object:
+  extract_fit_parsnip() %>% 
+  # Now tidy the linear model object:
+  tidy()
+```
+ 
+Question 6.) Predicting....
+
+```{r}
+hypo_fem_abalone <- data.frame(type = 'F', longest_shell =.50, diameter = 0.10, height = 0.30, whole_weight = 4, shucked_weight = 1, viscera_weight = 2, shell_weight = 1)
+
+abalone_train_pred = predict(lm_fit, new_data = hypo_fem_abalone)
+
+abalone_train_pred
+```
+
+As we can see, our predicted age is 11.7 based of our recipe.
+
+Question 7.) Performance.
+
+```{r}
+library(yardstick)
+abalone_train_pred <- bind_cols(abalone_train_pred, abalone_train %>% select(age))
+
+abalone_metrics <- metric_set(rmse, rsq, mae)
+
+abalone_metrics(abalone_train_pred, truth = age, 
+                estimate = .pred)
+```
+
+
