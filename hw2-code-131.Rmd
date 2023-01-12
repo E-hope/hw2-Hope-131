@@ -1,20 +1,25 @@
 ---
-title: "hw2-hope-131"
+title: "hw2-hope-131: Intro to reading in data and creating 'predictions'. "
 author: "Evan Hope"
 date: "4/10/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
+
+The purpose of this assignment is to display my introductory knowledge of reading in a data set, appending a variable to the set, setting up a workflow, creating a recipe, splitting data into training and test sets, and using the recipe and training set to help create predictions of the age of an abalone. 
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Downloading tidyverse and models.
+Downloading necessary packages.
 
 ```{r}
-install.packages("tidyverse")
-install.packages("tidymodels")
-install.packages("ISLR")
+# install.packages("tidyverse")
+# install.packages("tidymodels")
+# install.packages("ISLR")
 
 library(tidyverse)
 library(tidymodels)
@@ -40,7 +45,7 @@ abalone_data2 %>% select(age, everything())
 
 The 'age' variable has a simple linear relationship with one of the other variables. It is approximately +1.5 the number of rings observed on the abalone.
 
-However, we will eventually see which other combination of variables goes into approximating the age of the abaolone.
+However, we will eventually see which other combination of variables goes into approximating the age of the abalone aside from the rings.
 
 
 Question 2.) Data splitting.
@@ -57,9 +62,9 @@ abalone_test <- testing(abalone_split)
 
 ```
 
-Question 3.) Creating a recipe for the training data.
+Question 3.) Creating a recipe for the training data and excluding the rings variable.
 
-The reason why we exclude the rings variable here is because we have already asserted that there is a direct relationship between the rings and age. If we were to resume our analysis with rings included, we would notice that rings would be the clear dominant variable in determining the age.
+The reason why we exclude the rings variable here is because we have already asserted that there is a direct relationship between the rings and age. If we were to resume our analysis with rings included, we would notice that the rings variable would be the clear dominant variable in determining the age. 
 
 ```{r}
 # First a simple recipe to reference from. 
@@ -77,13 +82,13 @@ abalone_recipe <- recipe(age ~ type + longest_shell + diameter + height + whole_
 
 
 Question 4.) & 5.)
-And setting up a workflow....
+And setting up a linear regression model....
 ```{r}
 lm_model <- linear_reg() %>% 
   set_engine("lm")
 ```
 
-Fitting the linear model to the abalone training data...
+Fitting the linear model to the abalone training data along with creating the workflow...
 ```{r}
 lm_wflow <- workflow() %>% 
   add_model(lm_model) %>% 
@@ -105,7 +110,11 @@ lm_fit %>%
   tidy()
 ```
  
-Question 6.) Predicting....
+ 
+ Notice all of the low p-values for each variable. Each one has a p-value less than 0.05. This indicates that the variables are statistically significant.
+ 
+ 
+Question 6.) Predicting the age of an abalone with the given information below (given type, given diameter, etc) ....
 
 ```{r}
 hypo_fem_abalone <- data.frame(type = 'F', longest_shell =.50, diameter = 0.10, height = 0.30, whole_weight = 4, shucked_weight = 1, viscera_weight = 2, shell_weight = 1)
@@ -115,18 +124,24 @@ abalone_train_pred = predict(lm_fit, new_data = hypo_fem_abalone)
 abalone_train_pred
 ```
 
-As we can see, our predicted age is 11.7 based of our recipe.
+As we can see, our recipe predicted that the age is 11.7.
 
-Question 7.) Performance.
+Question 7.) I will now come up with predictions for all of the observations in the training set...
 
 ```{r}
 library(yardstick)
-abalone_train_pred <- bind_cols(abalone_train_pred, abalone_train %>% select(age))
+abalone_train_pred2 = predict(lm_fit, new_data = abalone_train)
 
-abalone_metrics <- metric_set(rmse, rsq, mae)
+abalone_train_pred2
+```
 
-abalone_metrics(abalone_train_pred, truth = age, 
-                estimate = .pred)
+
+Below is unfinished work. Please disregard.
+```{r}
+# abalone_metrics <- metric_set(rmse, rsq, mae)
+
+ # abalone_metrics(abalone_train_pred2, truth = age, 
+                # estimate = .pred)
 ```
 
 
